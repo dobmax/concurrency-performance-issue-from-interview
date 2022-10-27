@@ -48,16 +48,24 @@ public class BasicOrderService implements OrderService {
             orders.remove(order.id());
 
             final var next = linkedKeys.higherKey(order.id());
+            final var prev = linkedKeys.lowerKey(order.id());
             linkedKeys.remove(order.id());
 
-            latest.remove(order);
-            if (next != null) {
-                latest.add(orders.get(order.id()));
-                latest.sort(Comparator.comparingLong(o -> o.createdAt().toEpochMilli()));
+            if (latest.remove(order)) {
+                Long link = findLink(next, prev);
+                if (link != null) {
+                    latest.add(orders.get(link));
+                    latest.sort(Comparator.comparingLong(o -> o.createdAt().toEpochMilli()));
+                }
             }
         } finally {
             rwLock.writeLock().unlock();
         }
+    }
+
+    private Long findLink(Long prev, Long next) {
+        if (next != null) return next;
+        return prev;
     }
 
     @Override
